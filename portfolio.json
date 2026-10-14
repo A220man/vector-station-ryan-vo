@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "name": "vector-station-ryan-vo",
+  "owner": "A220man",
+  "email": "ryandtvo@gmail.com",
+  "domain": "AI/ML developer tools",
+  "summary": "Work in progress: vector-station-ryan-vo",
+  "workflows": [
+    "Text-to-speech synthesis with configurable voice, speed, and pitch",
+    "Voice management: built-in, cloned (reference audio), and designed (parameters) voices",
+    "Async synthesis job queue with status polling, history, and audio download"
+  ],
+  "auth": "oidc-keycloak-saml-broker",
+  "llm_providers": [
+    "openai-compatible",
+    "anthropic",
+    "gemini",
+    "ollama"
+  ],
+  "status": "work-in-progress"
+}
