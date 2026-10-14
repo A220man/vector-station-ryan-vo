@@ -1,0 +1,89 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: voicestudio-backend
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./voicestudio.db
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-change-in-production-min-32-chars}
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - OIDC_ENABLED=false
+      - CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - backend_data:/app/uploads
+      - backend_db:/app
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://127.0.0.1:8000/health/ready', timeout=5).raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - voicestudio-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: voicestudio-frontend
+    environment:
+      - VITE_API_BASE_URL=http://backend:8000/api
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5173/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - voicestudio-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: voicestudio-keycloak
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_DB=dev-file
+      - KC_HOSTNAME=localhost
+      - KC_HOSTNAME_PORT=8080
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
+      - KC_PROXY=edge
+    command: ["start-dev", "--import-realm"]
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - voicestudio-network
+    profiles:
+      - with-keycloak
+
+volumes:
+  backend_data:
+  backend_db:
+  keycloak_data:
+
+networks:
+  voicestudio-network:
+    driver: bridge
