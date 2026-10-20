@@ -41,7 +41,7 @@ class Voice(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=True)
-    voice_type = Column(SQLEnum(VoiceType, values_callable=lambda x: [e.value for e in x]), nullable=False, default=VoiceType.BUILTIN)
+    voice_type = Column(SQLEnum(VoiceType, values_callable=lambda x: [e.value for e in x]), nullable=False, default=VoiceType.BUILTIN)  # type: ignore[var-annotated]
     language = Column(String(10), nullable=False, default="en")
     sample_rate = Column(Integer, nullable=False, default=22050)
     # For cloned voices: path to reference audio or embedding
@@ -75,7 +75,7 @@ class SynthesisJob(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     text = Column(Text, nullable=False)
     voice_id = Column(Integer, ForeignKey("voices.id"), nullable=False)
-    status = Column(SQLEnum(SynthesisStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=SynthesisStatus.PENDING)
+    status = Column(SQLEnum(SynthesisStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=SynthesisStatus.PENDING)  # type: ignore[var-annotated]
     output_path = Column(String(512), nullable=True)
     duration_seconds = Column(Integer, nullable=True)
     error_message = Column(Text, nullable=True)
@@ -105,7 +105,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=True, index=True)
     hashed_password = Column(String(255), nullable=True)  # Nullable for OIDC-only users
     full_name = Column(String(255), nullable=True)
-    role = Column(SQLEnum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False, default=UserRole.VIEWER)
+    role = Column(SQLEnum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False, default=UserRole.VIEWER)  # type: ignore[var-annotated]
     is_active = Column(Integer, nullable=False, default=1)
     is_superuser = Column(Integer, nullable=False, default=0)
     # OIDC fields

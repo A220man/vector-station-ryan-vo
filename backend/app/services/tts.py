@@ -43,13 +43,13 @@ class TTSService:
         
         # Pack as 16-bit PCM WAV
         wav_buffer = bytearray()
-        with wave.open(Path(self.output_dir / "temp.wav"), "wb") as wav_file:
+        with wave.open(str(self.output_dir / "temp.wav"), "wb") as wav_file:
             wav_file.setnchannels(1)
             wav_file.setsampwidth(2)
             wav_file.setframerate(sample_rate)
             wav_file.writeframes(struct.pack(f"<{len(samples)}h", *samples))
         
-        with open(self.output_dir / "temp.wav", "rb") as f:
+        with open(str(self.output_dir / "temp.wav"), "rb") as f:
             return f.read()
 
     def text_to_speech_duration(self, text: str, speed: float = 1.0) -> float:
@@ -102,8 +102,7 @@ class TTSService:
     def get_audio_path(self, job_id: int) -> Optional[Path]:
         """Find audio file for a job."""
         for f in self.output_dir.glob(f"synthesis_{job_id}_*.wav"):
-            return f
+            return f  # type: ignore[no-any-return]
         return None
-
 
 tts_service = TTSService()

@@ -9,15 +9,15 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__ident="2b")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__ident="2b", bcrypt__rounds=12)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password, hashed_password)  # type: ignore[no-any-return]
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(password)  # type: ignore[no-any-return]
 
 
 def create_access_token(
@@ -33,7 +33,7 @@ def create_access_token(
     to_encode = {"sub": str(subject), "exp": expire, "type": "access"}
     if roles:
         to_encode["roles"] = roles
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)  # type: ignore[no-any-return]
 
 
 def create_refresh_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
@@ -43,13 +43,13 @@ def create_refresh_token(subject: str, expires_delta: Optional[timedelta] = None
         expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
 
     to_encode = {"sub": str(subject), "exp": expire, "type": "refresh"}
-    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)  # type: ignore[no-any-return]
 
 
 def decode_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        return payload
+        return payload  # type: ignore[no-any-return]
     except JWTError:
         raise ValueError("Invalid token")
 
@@ -65,6 +65,6 @@ def get_token_subject(token: str) -> Optional[str]:
 def get_token_roles(token: str) -> list[str]:
     try:
         payload = decode_token(token)
-        return payload.get("roles", [])
+        return payload.get("roles", [])  # type: ignore[no-any-return]
     except ValueError:
         return []

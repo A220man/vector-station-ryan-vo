@@ -17,6 +17,7 @@ from app.core.exceptions import (
 )
 from app.api.router import api_router
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import text
 from pydantic import ValidationError as PydanticValidationError
 
 import logging
