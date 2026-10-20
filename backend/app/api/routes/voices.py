@@ -12,7 +12,7 @@ from app.schemas import (
     VoiceResponse,
     VoiceListResponse,
 )
-from app.core.exceptions import NotFoundError, ValidationError
+from app.core.exceptions import NotFoundError, InputValidationError
 
 router = APIRouter(prefix="/voices", tags=["voices"])
 
@@ -93,9 +93,9 @@ async def create_voice(
 ):
     # Validate voice_type specific fields
     if voice_data.voice_type == VoiceType.CLONED and not voice_data.reference_audio_path:
-        raise ValidationError("Cloned voices require reference_audio_path")
+        raise InputValidationError("Cloned voices require reference_audio_path")
     if voice_data.voice_type == VoiceType.DESIGNED and not voice_data.design_params:
-        raise ValidationError("Designed voices require design_params")
+        raise InputValidationError("Designed voices require design_params")
 
     voice = Voice(
         **voice_data.model_dump(),
@@ -149,7 +149,7 @@ async def delete_voice(
         raise NotFoundError("Voice", voice_id)
 
     if voice.voice_type == VoiceType.BUILTIN:
-        raise ValidationError("Cannot delete builtin voices")
+        raise InputValidationError("Cannot delete builtin voices")
 
     await db.delete(voice)
     await db.commit()

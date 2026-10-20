@@ -7,7 +7,7 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
 )
-from app.core.exceptions import VoiceStudioError, NotFoundError, ValidationError
+from app.core.exceptions import VoiceStudioError, NotFoundError, InputValidationError
 
 __all__ = [
     "get_settings",
@@ -23,5 +23,5 @@ __all__ = [
     "decode_token",
     "VoiceStudioError",
     "NotFoundError",
-    "ValidationError",
+    "InputValidationError",
 ]

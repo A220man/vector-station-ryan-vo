@@ -19,7 +19,7 @@ from app.core.security import (
 )
 from app.models import User, UserRole
 from app.schemas import TokenResponse, UserResponse
-from app.core.exceptions import AuthenticationError, ValidationError
+from app.core.exceptions import AuthenticationError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -136,10 +136,10 @@ async def oidc_login(request: Request):
 @router.get("/oidc/callback")
 async def oidc_callback(
     request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
     code: str | None = None,
     state: str | None = None,
     error: str | None = None,
-    db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
     if not settings.oidc_enabled:
         raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="OIDC not configured")

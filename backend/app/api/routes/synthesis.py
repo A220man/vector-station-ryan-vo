@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 from typing import Annotated
 from fastapi import APIRouter, Depends, Query, HTTPException, status, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -15,7 +16,7 @@ from app.schemas import (
     SynthesisJobListResponse,
 )
 from app.services.tts import tts_service
-from app.core.exceptions import NotFoundError, ValidationError, AuthorizationError
+from app.core.exceptions import NotFoundError, InputValidationError, AuthorizationError
 
 router = APIRouter(prefix="/synthesis", tags=["synthesis"])
 
@@ -84,7 +85,7 @@ async def create_synthesis(
     if not voice:
         raise NotFoundError("Voice", job_data.voice_id)
     if not voice.is_active:
-        raise ValidationError("Voice is not active")
+        raise InputValidationError("Voice is not active")
     if voice.voice_type != Voice.__table__.c.voice_type.type.python_type.BUILTIN and voice.owner_id != current_user.id:
         if not current_user.is_superuser and current_user.role != UserRole.ADMIN:
             raise NotFoundError("Voice", job_data.voice_id)
