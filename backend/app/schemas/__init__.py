@@ -36,6 +36,8 @@ class VoiceCreate(VoiceBase):
     reference_audio_path: Optional[str] = None
     design_params: Optional[str] = None
 
+    model_config = ConfigDict(protected_namespaces=())
+
     @model_validator(mode="after")
     def validate_voice_type_fields(self):
         if self.voice_type == VoiceType.CLONED and not self.reference_audio_path:
@@ -63,7 +65,7 @@ class VoiceResponse(VoiceBase):
     updated_at: datetime
     owner_id: Optional[int] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
 
 class VoiceListResponse(BaseModel):
