@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
+## 1.2.1 — Fix Pydantic model_id warnings
+
+### Fixed
+- Added `protected_namespaces=()` config to VoiceCreate and VoiceResponse schemas to resolve Pydantic protected namespace warnings for `model_id` field
+- All backend tests pass without warnings from application code
+- All frontend tests pass
+
 ## 1.2.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
