@@ -27,6 +27,22 @@ Implementation: `backend/app/main.py`, `backend/app/core/config.py`, `backend/ap
 
 Tests: `backend/tests/conftest.py`, `backend/tests/test_health.py`, `backend/tests/test_voices.py`, `backend/tests/test_synthesis.py`, `backend/tests/test_auth.py`, `frontend/src/test/setup.ts`, `frontend/src/pages/Dashboard.test.tsx`
 
+### tts-mp3-output — TTS MP3 Output Format Support
+
+Status: done
+
+Acceptance:
+- Configurable audio output format (WAV/MP3) via settings
+- TTS service generates audio in configured format
+- MP3 encoding via pydub/ffmpeg at 128kbps
+- WAV encoding at 16-bit PCM
+- File extension matches output format
+- All existing tests pass
+
+Implementation: `backend/app/services/tts.py`, `backend/app/core/config.py`, `backend/requirements.txt`
+
+Tests: `backend/tests/test_synthesis.py`
+
 ### voice-cloning — Voice Cloning from Reference Audio
 
 Status: planned
