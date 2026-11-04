@@ -1,8 +1,19 @@
 # Changelog
 
+## 1.4.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.3.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
+
+### Added
+- TTS MP3 output format support via configurable `audio_output_format` setting
+- TTS service now uses numpy for efficient waveform generation
+- MP3 encoding at 128kbps mono via pydub/ffmpeg
+- WAV encoding at 16-bit PCM mono
+- Output file extension automatically matches configured format
 
 ## 1.2.1 — Fix Pydantic model_id warnings
 

@@ -1,3 +1,4 @@
+import io
 import os
 import uuid
 import wave
@@ -10,6 +11,10 @@ from datetime import datetime, timezone
 from app.core.config import get_settings
 from app.core.exceptions import SynthesisError, NotFoundError
 
+# Audio processing
+import numpy as np
+from pydub import AudioSegment
+
 
 settings = get_settings()
 
@@ -19,6 +24,7 @@ class TTSService:
         self.output_dir = Path(settings.upload_dir) / "synthesis"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.sample_rate = settings.audio_sample_rate
+        self.output_format = settings.audio_output_format.lower()
 
     def generate_tone_waveform(
         self,
@@ -26,31 +32,56 @@ class TTSService:
         frequency: float = 440.0,
         sample_rate: int = 22050,
         amplitude: float = 0.3,
-    ) -> bytes:
-        """Generate a simple sine wave as placeholder audio."""
+    ) -> np.ndarray:
+        """Generate a simple sine wave as placeholder audio. Returns numpy array of samples."""
         num_samples = int(duration_seconds * sample_rate)
-        samples = []
-        for i in range(num_samples):
-            t = i / sample_rate
-            # Simple ADSR envelope to avoid clicks
-            attack = min(1.0, t / 0.01)
-            release = max(0.0, 1.0 - (t - (duration_seconds - 0.05)) / 0.05) if t > duration_seconds - 0.05 else 1.0
-            envelope = attack * release
-            value = amplitude * envelope * math.sin(2 * math.pi * frequency * t)
-            # Clamp and convert to 16-bit PCM
-            value = max(-1.0, min(1.0, value))
-            samples.append(int(value * 32767))
-        
-        # Pack as 16-bit PCM WAV
-        wav_buffer = bytearray()
-        with wave.open(str(self.output_dir / "temp.wav"), "wb") as wav_file:
+        t = np.linspace(0, duration_seconds, num_samples, endpoint=False)
+        # Simple ADSR envelope to avoid clicks
+        attack = np.minimum(1.0, t / 0.01)
+        release = np.where(
+            t > duration_seconds - 0.05,
+            np.maximum(0.0, 1.0 - (t - (duration_seconds - 0.05)) / 0.05),
+            1.0
+        )
+        envelope = attack * release
+        samples = amplitude * envelope * np.sin(2 * np.pi * frequency * t)
+        # Clamp and convert to 16-bit PCM
+        samples = np.clip(samples, -1.0, 1.0)
+        return (samples * 32767).astype(np.int16)
+
+    def _samples_to_wav_bytes(self, samples: np.ndarray, sample_rate: int) -> bytes:
+        """Convert numpy samples to WAV bytes."""
+        wav_buffer = io.BytesIO()
+        with wave.open(wav_buffer, "wb") as wav_file:
             wav_file.setnchannels(1)
             wav_file.setsampwidth(2)
             wav_file.setframerate(sample_rate)
-            wav_file.writeframes(struct.pack(f"<{len(samples)}h", *samples))
-        
-        with open(str(self.output_dir / "temp.wav"), "rb") as f:
-            return f.read()
+            wav_file.writeframes(samples.tobytes())
+        return wav_buffer.getvalue()
+
+    def _samples_to_mp3_bytes(self, samples: np.ndarray, sample_rate: int) -> bytes:
+        """Convert numpy samples to MP3 bytes using pydub."""
+        # Create AudioSegment from samples
+        audio_segment = AudioSegment(
+            samples.tobytes(),
+            frame_rate=sample_rate,
+            sample_width=2,  # 16-bit
+            channels=1,
+        )
+        # Export to MP3
+        mp3_buffer = io.BytesIO()
+        audio_segment.export(mp3_buffer, format="mp3", bitrate="128k")
+        return mp3_buffer.getvalue()
+
+    def _samples_to_audio_bytes(self, samples: np.ndarray, sample_rate: int) -> bytes:
+        """Convert samples to audio bytes in configured output format."""
+        if self.output_format == "mp3":
+            return self._samples_to_mp3_bytes(samples, sample_rate)
+        return self._samples_to_wav_bytes(samples, sample_rate)
+
+    def _get_audio_extension(self) -> str:
+        """Get file extension for current output format."""
+        return "mp3" if self.output_format == "mp3" else "wav"
 
     def text_to_speech_duration(self, text: str, speed: float = 1.0) -> float:
         """Estimate speech duration based on text length and speed."""
@@ -83,17 +114,20 @@ class TTSService:
         base_freq = 220.0 + (voice_id % 5) * 55.0  # Different base per voice
         frequency = base_freq * (2 ** (pitch / 12.0))
         
-        audio_data = self.generate_tone_waveform(
+        samples = self.generate_tone_waveform(
             duration_seconds=duration,
             frequency=frequency,
             sample_rate=self.sample_rate,
         )
         
+        audio_data = self._samples_to_audio_bytes(samples, self.sample_rate)
+        
         return audio_data, duration
 
     def save_audio(self, audio_data: bytes, job_id: int) -> str:
         """Save audio data to file and return path."""
-        filename = f"synthesis_{job_id}_{uuid.uuid4().hex[:8]}.wav"
+        ext = self._get_audio_extension()
+        filename = f"synthesis_{job_id}_{uuid.uuid4().hex[:8]}.{ext}"
         filepath = self.output_dir / filename
         with open(filepath, "wb") as f:
             f.write(audio_data)
@@ -101,8 +135,10 @@ class TTSService:
 
     def get_audio_path(self, job_id: int) -> Optional[Path]:
         """Find audio file for a job."""
-        for f in self.output_dir.glob(f"synthesis_{job_id}_*.wav"):
+        ext = self._get_audio_extension()
+        for f in self.output_dir.glob(f"synthesis_{job_id}_*.{ext}"):
             return f  # type: ignore[no-any-return]
         return None
+
 
 tts_service = TTSService()
