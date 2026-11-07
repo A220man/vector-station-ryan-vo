@@ -21,13 +21,16 @@ from app.core.exceptions import NotFoundError, InputValidationError, Authorizati
 router = APIRouter(prefix="/synthesis", tags=["synthesis"])
 
 
-async def process_synthesis_job(job_id: int, db_factory):
+async def process_synthesis_job(job_id: int, db_factory=None):
     """Background task to process synthesis job."""
     from app.core.database import async_session_maker
     from app.models import SynthesisJob, SynthesisStatus
     from datetime import datetime, timezone
     
-    async with async_session_maker() as db:
+    # Use provided factory or default to production
+    session_maker = db_factory or async_session_maker
+    
+    async with session_maker() as db:
         result = await db.execute(
             select(SynthesisJob).where(SynthesisJob.id == job_id)
         )
@@ -192,10 +195,19 @@ async def download_synthesis_audio(
             raise NotFoundError("Audio file", job_id)
         audio_path = found
 
+    # Determine media type and filename based on file extension
+    extension = audio_path.suffix.lower().lstrip(".")
+    media_type_map = {
+        "wav": "audio/wav",
+        "mp3": "audio/mpeg",
+    }
+    media_type = media_type_map.get(extension, "audio/wav")
+    filename = f"synthesis_{job_id}.{extension}"
+
     return FileResponse(
         path=audio_path,
-        media_type="audio/wav",
-        filename=f"synthesis_{job_id}.wav",
+        media_type=media_type,
+        filename=filename,
     )
 
 

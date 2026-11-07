@@ -24,7 +24,16 @@ class TTSService:
         self.output_dir = Path(settings.upload_dir) / "synthesis"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.sample_rate = settings.audio_sample_rate
-        self.output_format = settings.audio_output_format.lower()
+
+    @property
+    def output_format(self) -> str:
+        """Get current output format from settings."""
+        return get_settings().audio_output_format.lower()
+
+    @property
+    def _audio_extension(self) -> str:
+        """Get file extension for current output format."""
+        return "mp3" if self.output_format == "mp3" else "wav"
 
     def generate_tone_waveform(
         self,
@@ -81,7 +90,7 @@ class TTSService:
 
     def _get_audio_extension(self) -> str:
         """Get file extension for current output format."""
-        return "mp3" if self.output_format == "mp3" else "wav"
+        return self._audio_extension
 
     def text_to_speech_duration(self, text: str, speed: float = 1.0) -> float:
         """Estimate speech duration based on text length and speed."""
