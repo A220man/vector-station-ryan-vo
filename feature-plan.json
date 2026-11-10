@@ -49,20 +49,11 @@
                 "frontend/src/api/client.ts",
                 "frontend/src/types/api.ts",
                 "frontend/src/styles/globals.css",
-                "frontend/package.json",
                 "frontend/vite.config.ts",
                 "frontend/tsconfig.json",
-                "frontend/Dockerfile",
-                "frontend/nginx.conf",
+                "frontend/package.json",
                 "compose.yaml",
-                "keycloak/realm-export.json",
-                ".env.example",
-                ".gitignore",
-                "README.md",
-                "LICENSE",
-                "CHANGELOG.md",
-                "portfolio.json",
-                ".github/workflows/ci.yml"
+                "keycloak/realm-export.json"
             ],
             "tests": [
                 "backend/tests/conftest.py",
@@ -90,6 +81,23 @@
                 "backend/app/services/tts.py",
                 "backend/app/core/config.py",
                 "backend/requirements.txt"
+            ],
+            "tests": [
+                "backend/tests/test_synthesis.py"
+            ]
+        },
+        {
+            "id": "tts-speed-pitch-audio",
+            "title": "TTS Speed and Pitch Audio Processing",
+            "status": "done",
+            "acceptance": [
+                "Speed parameter (percentage) actually changes audio playback speed via time-stretching",
+                "Pitch parameter (semitones) actually shifts audio pitch via resampling",
+                "Both parameters work for both WAV and MP3 output formats",
+                "All existing tests pass"
+            ],
+            "implementation": [
+                "backend/app/services/tts.py"
             ],
             "tests": [
                 "backend/tests/test_synthesis.py"
@@ -176,4 +184,3 @@
         }
     ]
 }
-
