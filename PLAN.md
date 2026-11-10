@@ -23,7 +23,7 @@ Acceptance:
 - Backend tests: health, TTS endpoint, database models
 - Frontend tests: dashboard renders, TTS form submits
 
-Implementation: `backend/app/main.py`, `backend/app/core/config.py`, `backend/app/core/database.py`, `backend/app/core/security.py`, `backend/app/core/exceptions.py`, `backend/app/models/__init__.py`, `backend/app/schemas/__init__.py`, `backend/app/api/deps.py`, `backend/app/api/router.py`, `backend/app/api/routes/health.py`, `backend/app/api/routes/voices.py`, `backend/app/api/routes/synthesis.py`, `backend/app/api/routes/auth.py`, `backend/app/services/tts.py`, `backend/app/db/init_db.py`, `backend/requirements.txt`, `backend/Dockerfile`, `backend/pyproject.toml`, `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/components/Layout.tsx`, `frontend/src/components/AudioPlayer.tsx`, `frontend/src/components/VoiceSelector.tsx`, `frontend/src/pages/Dashboard.tsx`, `frontend/src/pages/Voices.tsx`, `frontend/src/pages/Login.tsx`, `frontend/src/hooks/useAuth.ts`, `frontend/src/hooks/useSynthesis.ts`, `frontend/src/api/client.ts`, `frontend/src/types/api.ts`, `frontend/src/styles/globals.css`, `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tsconfig.json`, `frontend/Dockerfile`, `frontend/nginx.conf`, `compose.yaml`, `keycloak/realm-export.json`, `.env.example`, `.gitignore`, `README.md`, `LICENSE`, `CHANGELOG.md`, `portfolio.json`, `.github/workflows/ci.yml`
+Implementation: `backend/app/main.py`, `backend/app/core/config.py`, `backend/app/core/database.py`, `backend/app/core/security.py`, `backend/app/core/exceptions.py`, `backend/app/models/__init__.py`, `backend/app/schemas/__init__.py`, `backend/app/api/deps.py`, `backend/app/api/router.py`, `backend/app/api/routes/health.py`, `backend/app/api/routes/voices.py`, `backend/app/api/routes/synthesis.py`, `backend/app/api/routes/auth.py`, `backend/app/services/tts.py`, `backend/app/db/init_db.py`, `backend/requirements.txt`, `backend/Dockerfile`, `backend/pyproject.toml`, `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/components/Layout.tsx`, `frontend/src/components/AudioPlayer.tsx`, `frontend/src/components/VoiceSelector.tsx`, `frontend/src/pages/Dashboard.tsx`, `frontend/src/pages/Voices.tsx`, `frontend/src/pages/Login.tsx`, `frontend/src/hooks/useAuth.ts`, `frontend/src/hooks/useSynthesis.ts`, `frontend/src/api/client.ts`, `frontend/src/types/api.ts`, `frontend/src/styles/globals.css`, `frontend/vite.config.ts`, `frontend/tsconfig.json`, `frontend/package.json`, `compose.yaml`, `keycloak/realm-export.json`
 
 Tests: `backend/tests/conftest.py`, `backend/tests/test_health.py`, `backend/tests/test_voices.py`, `backend/tests/test_synthesis.py`, `backend/tests/test_auth.py`, `frontend/src/test/setup.ts`, `frontend/src/pages/Dashboard.test.tsx`
 
@@ -40,6 +40,20 @@ Acceptance:
 - All existing tests pass
 
 Implementation: `backend/app/services/tts.py`, `backend/app/core/config.py`, `backend/requirements.txt`
+
+Tests: `backend/tests/test_synthesis.py`
+
+### tts-speed-pitch-audio — TTS Speed and Pitch Audio Processing
+
+Status: done
+
+Acceptance:
+- Speed parameter (percentage) actually changes audio playback speed via time-stretching
+- Pitch parameter (semitones) actually shifts audio pitch via resampling
+- Both parameters work for both WAV and MP3 output formats
+- All existing tests pass
+
+Implementation: `backend/app/services/tts.py`
 
 Tests: `backend/tests/test_synthesis.py`
 

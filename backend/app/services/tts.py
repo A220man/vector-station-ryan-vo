@@ -82,6 +82,37 @@ class TTSService:
         audio_segment.export(mp3_buffer, format="mp3", bitrate="128k")
         return mp3_buffer.getvalue()
 
+    def _apply_speed_pitch(self, samples: np.ndarray, sample_rate: int, speed: float, pitch: int) -> np.ndarray:
+        """Apply speed and pitch changes to audio samples using pydub."""
+        # Create AudioSegment from samples
+        audio_segment = AudioSegment(
+            samples.tobytes(),
+            frame_rate=sample_rate,
+            sample_width=2,  # 16-bit
+            channels=1,
+        )
+
+        # Apply pitch shift (in semitones)
+        if pitch != 0:
+            # Pitch shift by changing frame rate and then resampling back
+            new_frame_rate = int(sample_rate * (2 ** (pitch / 12.0)))
+            audio_segment = audio_segment._spawn(audio_segment.raw_data, overrides={
+                "frame_rate": new_frame_rate
+            })
+            audio_segment = audio_segment.set_frame_rate(sample_rate)
+
+        # Apply speed change (time stretch)
+        if speed != 1.0:
+            # Change frame rate for speed and resample back to original rate
+            new_frame_rate = int(sample_rate * speed)
+            audio_segment = audio_segment._spawn(audio_segment.raw_data, overrides={
+                "frame_rate": new_frame_rate
+            })
+            audio_segment = audio_segment.set_frame_rate(sample_rate)
+
+        # Convert back to numpy array
+        return np.array(audio_segment.get_array_of_samples(), dtype=np.int16)
+
     def _samples_to_audio_bytes(self, samples: np.ndarray, sample_rate: int) -> bytes:
         """Convert samples to audio bytes in configured output format."""
         if self.output_format == "mp3":
@@ -118,19 +149,23 @@ class TTSService:
         # For now, generate a tone based on voice_id and pitch
         # In production, this would call a real TTS model
         duration = self.text_to_speech_duration(text, speed / 100.0)
-        
+
         # Base frequency modified by pitch (semitones)
         base_freq = 220.0 + (voice_id % 5) * 55.0  # Different base per voice
         frequency = base_freq * (2 ** (pitch / 12.0))
-        
+
         samples = self.generate_tone_waveform(
             duration_seconds=duration,
             frequency=frequency,
             sample_rate=self.sample_rate,
         )
-        
+
+        # Apply speed and pitch to the actual audio
+        speed_factor = speed / 100.0
+        samples = self._apply_speed_pitch(samples, self.sample_rate, speed_factor, pitch)
+
         audio_data = self._samples_to_audio_bytes(samples, self.sample_rate)
-        
+
         return audio_data, duration
 
     def save_audio(self, audio_data: bytes, job_id: int) -> str:
