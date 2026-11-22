@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -153,3 +153,69 @@ async def delete_voice(
 
     await db.delete(voice)
     await db.commit()
+
+
+@router.post("/{voice_id}/upload-reference", 
+             response_model=VoiceResponse, 
+             status_code=status.HTTP_200_OK,
+             summary="Upload reference audio for voice cloning",
+             tags=["voices"])
+async def upload_reference_audio(
+    voice_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_operator)],
+    file: UploadFile = File(..., description="Reference audio file for voice cloning"),
+):
+    """Upload reference audio for voice cloning.
+
+    Uploads a reference audio file and associates it with the specified voice.
+    The file is stored locally and the path is saved to the voice's reference_audio_path field.
+    Only operator and admin users can upload reference audio.
+    """
+    # Check voice exists and user has access
+    result = await db.execute(select(Voice).where(Voice.id == voice_id))
+    voice = result.scalar_one_or_none()
+    if not voice:
+        raise NotFoundError("Voice", voice_id)
+
+    # Check ownership for non-builtin voices
+    if voice.voice_type != VoiceType.BUILTIN and voice.owner_id != current_user.id:
+        if not current_user.is_superuser and current_user.role != UserRole.ADMIN:
+            raise NotFoundError("Voice", voice_id)
+
+    # Only cloned or designed voices can have reference audio
+    if voice.voice_type not in (VoiceType.CLONED, VoiceType.DESIGNED):
+        raise InputValidationError("Reference audio can only be uploaded for cloned or designed voices")
+
+    # Generate a unique filename
+    import uuid
+    import os
+    from pathlib import Path
+    import aiofiles
+
+    from app.core.config import get_settings
+    settings = get_settings()
+    upload_dir = Path(settings.upload_dir) / "reference_audio"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    file_ext = Path(file.filename or "audio").suffix or ".wav"
+    # Only allow common audio extensions
+    allowed_extensions = {".wav", ".mp3", ".m4a", ".flac", ".ogg"}
+    if file_ext.lower() not in allowed_extensions:
+        raise InputValidationError(f"Unsupported audio format. Allowed: {', '.join(allowed_extensions)}")
+
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = upload_dir / unique_filename
+
+    # Save the uploaded file
+    content_bytes = await file.read()
+    async with aiofiles.open(file_path, 'wb') as f:
+        await f.write(content_bytes)
+
+    # Update the voice's reference_audio_path
+    voice.reference_audio_path = str(file_path)
+    db.add(voice)
+    await db.commit()
+    await db.refresh(voice)
+
+    return VoiceResponse.model_validate(voice)
