@@ -1,5 +1,8 @@
 import pytest
 from httpx import AsyncClient
+from passlib.context import CryptContext
+from sqlalchemy import select
+from app.models import Voice, VoiceType
 
 
 @pytest.mark.asyncio
@@ -79,3 +82,83 @@ async def test_create_cloned_voice_requires_reference(client: AsyncClient, auth_
         headers=auth_headers,
     )
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_upload_reference_audio(client, db_session, auth_headers):
+    """Test uploading reference audio for voice cloning.
+    
+    Tests the upload-reference endpoint that accepts reference audio files
+    for cloned voices. Verifies the file is stored and the voice's
+    reference_audio_path is updated.
+    """
+    import uuid
+    from pathlib import Path
+    from app.core.config import get_settings
+    
+    # Create a minimal WAV audio file header
+    # WAV: RIFF chunk + fmt subchunk + data subchunk
+    wav_data = (
+        b'RIFF' +
+        (36 + 1000).to_bytes(4, 'little') +
+        b'WAVE' +
+        b'fmt ' +
+        (16).to_bytes(4, 'little') +
+        (1).to_bytes(2, 'little') +  # audio format (PCM)
+        (1).to_bytes(2, 'little') +  # number of channels
+        (22050).to_bytes(4, 'little') +  # sample rate
+        (22050 * 2 * 1).to_bytes(4, 'little') +  # byte rate
+        (2).to_bytes(2, 'little') +  # block align
+        (16).to_bytes(2, 'little') +  # bits per sample
+        b'data' +
+        (1000).to_bytes(4, 'little') +
+        b'\x00' * 1000  # 1000 bytes of silence
+    )
+    
+    # First create a cloned voice
+    voice = Voice(
+        name='TestCloneVoice',
+        description='Voice for cloning test',
+        voice_type=VoiceType.CLONED,
+        language='en',
+        sample_rate=22050,
+        is_active=1,
+        owner_id=1,
+    )
+    db_session.add(voice)
+    await db_session.commit()
+    await db_session.refresh(voice)
+    
+    filename = f'test_ref_{uuid.uuid4().hex}.wav'
+    
+    files = {'file': (filename, wav_data, 'audio/wav')}
+    data = {'voice_id': str(voice.id)}
+    
+    response = await client.post(
+        f'/api/voices/{voice.id}/upload-reference',
+        files=files,
+        data=data,
+        headers=auth_headers,
+    )
+    
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    
+    response_data = response.json()
+    assert 'reference_audio_path' in response_data
+    assert response_data['reference_audio_path'] is not None
+    
+    # Verify the voice was updated in the database
+    await db_session.refresh(voice)
+    assert voice.reference_audio_path is not None
+    assert voice.reference_audio_path.endswith('.wav')
+    
+    # Verify the file exists somewhere in the upload directory
+    upload_dir = Path(get_settings().upload_dir) / "reference_audio"
+    expected_filename = voice.reference_audio_path.split('/')[-1]
+    found = False
+    if upload_dir.exists():
+        for f in upload_dir.iterdir():
+            if f.name == expected_filename:
+                found = True
+                break
+    assert found, f"Expected file {expected_filename} to be in {upload_dir}"
