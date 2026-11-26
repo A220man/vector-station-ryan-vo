@@ -59,10 +59,10 @@ Tests: `backend/tests/test_synthesis.py`
 
 ### voice-cloning — Voice Cloning from Reference Audio
 
-Status: planned
+Status: in_progress
 
 Acceptance:
-- Upload reference audio endpoint
+- Upload reference audio endpoint ✓
 - Voice embedding extraction and storage
 - Cloned voice available for TTS synthesis
 - Frontend voice cloning workflow with upload and preview
